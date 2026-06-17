@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SGFコミ変換ツール for 野狐囲碁</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .container {
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            font-size: 1.5em;
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        input[type="file"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #27ae60;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #219150;
+        }
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        .result-area {
+            margin-top: 30px;
+            display: none;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
+            font-family: monospace;
+            background-color: #f9f9f9;
+        }
+        .download-btn {
+            background-color: #2980b9;
+            margin-top: 10px;
+        }
+        .download-btn:hover {
+            background-color: #2471a3;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>SGFコミ変換ツール</h1>
+    <p style="font-size: 0.9em; color: #666;">野狐囲碁などでコミ情報が欠落したSGFファイルのコミを修正し、保存し直すツールです。</p>
+
+    <div class="form-group">
+        <label for="fileInput">SGFファイルを選択</label>
+        <input type="file" id="fileInput" accept=".sgf,.txt">
+    </div>
+
+    <div class="form-group">
+        <label for="komiInput">設定したいコミ（目）</label>
+        <input type="number" id="komiInput" value="6.5" step="0.5">
+    </div>
+
+    <button id="convertBtn">変換する</button>
+
+    <div class="result-area" id="resultArea">
+        <label for="outputText">変換後のデータ</label>
+        <textarea id="outputText" readonly></textarea>
+        <button id="downloadBtn" class="download-btn">SGFファイルをダウンロード</button>
+    </div>
+</div>
+
+<script>
+    const fileInput = document.getElementById('fileInput');
+    const komiInput = document.getElementById('komiInput');
+    const convertBtn = document.getElementById('convertBtn');
+    const resultArea = document.getElementById('resultArea');
+    const outputText = document.getElementById('outputText');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    let originalFileName = "fixed_game.sgf";
+    let convertedContent = "";
+
+    convertBtn.addEventListener('click', () => {
+        const file = fileInput.files[0];
+        if (!file) {
+            alert("SGFファイルを選択してください。");
+            return;
+        }
+
+        originalFileName = file.name.replace('.sgf', '_fixed.sgf');
+        const komiValue = komiInput.value;
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+            let content = e.target.result;
+            
+            // KMタグが存在するかチェックして置換、なければSZタグの後ろなどに追加
+            if (/KM\[.*?\]/.test(content)) {
+                convertedContent = content.replace(/KM\[.*?\]/g, `KM[${komiValue}]`);
+            } else {
+                convertedContent = content.replace(/(SZ\[\d+\])/, `$1KM[${komiValue}]`);
+            }
+
+            outputText.value = convertedContent;
+            resultArea.style.display = 'block';
+        };
+
+        reader.readAsText(file);
+    });
+
+    downloadBtn.addEventListener('click', () => {
+        if (!convertedContent) return;
+        
+        const blob = new Blob([convertedContent], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        
+        a.href = url;
+        a.download = originalFileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    });
+</script>
+
+</body>
+</html>
